@@ -4,10 +4,11 @@ import network as Network
 import data as Data
 
 test_name = str(sys.argv[1])
-classifier = str(sys.argv[2])
-num_nodes = int(sys.argv[3])
-input_probability = float(sys.argv[4])
-reservoir_probability = float(sys.argv[5])
+filter_name = str(sys.argv[2])
+classifier = str(sys.argv[3])
+num_nodes = int(sys.argv[4])
+input_probability = float(sys.argv[5])
+reservoir_probability = float(sys.argv[6])
 
 d = Data.Data(80)
 
@@ -23,13 +24,13 @@ if test_name == '5s':
 		d.build_train_labels_log()
 		d.build_test_labels_log()
 
+	else:
+		print("This classifier is not supported for this test.")
+		sys.exit(1)
+
 	d.build_training_matrix()
 	d.build_test_matrix()
 	Network.L = 5
-
-	else:
-		print("This classifier is not supported for this test.")
-		return 1
 
 elif test_name == 'lvr':
 	if classifier == 'log' or classifier == '1nn':
@@ -39,15 +40,18 @@ elif test_name == 'lvr':
 
 	else: 
 		print("This classifier is not supported for this test.")
-		return 1
+		sys.exit(1)
 
 else:
 	print("This test does not exist.")
-	return 1
+	sys.exit(1)
 
+if filter_name not in d.spectral_bands.keys():
+	print("The specified frequency band is not supported")
+	sys.exit(1)
 
-d.training_data = d.filter_data(d.training_data,'baseline')
-d.test_data = d.filter_data(d.test_data,'baseline')
+d.training_data = d.filter_data(d.training_data,filter_name)
+d.test_data = d.filter_data(d.test_data,filter_name)
 
 d.training_data = np.abs(d.training_data)
 d.test_data = np.abs(d.test_data)

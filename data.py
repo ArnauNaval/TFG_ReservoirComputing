@@ -13,12 +13,11 @@ class Data():
             'theta' : [4.,7.],
             'alpha' : [8.,15.],
             'beta'  : [15.,30.],
-            'low gamma' : [30.,70.],
-            'high gamma': [70.,100.],
-            'low ripple': [100.,150.],
-            'high ripple': [150.,200.],
-            'low multi-unit': [200.,500.],
-            'high multi-unit': [500.,1000.],
+            'lowgamma' : [30.,70.],
+            'highgamma': [70.,100.],
+            'lowripple': [100.,150.],
+            'highripple': [150.,200.],
+            'lowmultiunit': [200.,500.],
             'baseline': [4.,500.]
         }
         self.training_percentage = training_percentage
