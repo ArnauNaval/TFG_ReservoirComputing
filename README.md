@@ -1,12 +1,13 @@
 # REVEALING BRAIN STATES WITH RESERVOIR COMPUTING - TFG - Arnau Naval Ruiz
 
-_The purpose of the project is to build a Reservoir Computing model capable of identifying different movement related states from a neural data set recorded from a non-human primate. To this end, we will perform the following analyses:
+The purpose of the project is to build a Reservoir Computing model capable of identifying different movement related states from a neural data set recorded from a non-human primate. To this end, we will perform the following analyses:
 
 *	Five-State Classification: where we will try to distinguish all five states at the same time, giving it a full trial to classify.
 
 *	Left vs Right: where we will try to distinguish when the data is from the primate using the left arm or the right arm.
 
 Not only it is interesting to see if RC is capable of capturing the features recorded from specific brain regions, we will also see if the representation of the data after going through the model helps classify the states into their belonging classes better than without using the neural network.
+
 
 
 ## Files description
@@ -17,9 +18,11 @@ Not only it is interesting to see if RC is capable of capturing the features rec
 
 * reservoir.py : This file runs the project, it builds the data and network using both the mentioned files above.
 
+
+
 ## How to run the code
 
-_There are 2 tests to perform:
+There are 2 tests to perform:
 
 * Five-State Classification: that uses either Logistic Classifier (log) or Linear Classifier (lin). Command -> 5s
 
@@ -38,22 +41,25 @@ Name - command
 *High ripple - highripple
 *Low multi-unit - lowmultiunit
 
+
 In order to run the console we will use the following command: 
 
 ```
-python3 {test_command (string)} {filter_command (string)} {classifier_command (string)} {number of nodes (int)} {input probability connection (float)} {reservoir probability connection (float)}
+python3 reservoir.py {test_command (string)} {filter_command (string)} {classifier_command (string)} {number of nodes (int)} {input probability connection (float)} {reservoir probability connection (float)}
 ```
+
 
 An example for 5 state classification would be:
 ```
-python3 5s lowmultiunit lin 100 0.5 0.2
+python3 reservoir.py 5s lowmultiunit lin 100 0.5 0.2
 ```
 
 An example for Left vs Right classification would be: 
 
 ```
-python3 lvr theta 1nn 50 0.2 0.4
+python3 reservoir.py lvr theta 1nn 50 0.2 0.4
 ```
+
 
 The following combinations are not supported:
 
