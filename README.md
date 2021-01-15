@@ -31,15 +31,15 @@ There are 2 tests to perform:
 Both tests can apply a range of frequency filters:
 
 Name - command
-*Baseline - baseline
-*Theta - theta
-*Alpha - alpha
-*Beta - beta
-*Low gamma - lowgamma
-*High gamma - highgamma
-*Low ripple - lowripple
-*High ripple - highripple
-*Low multi-unit - lowmultiunit
+* Baseline - baseline
+* Theta - theta
+* Alpha - alpha
+* Beta - beta
+* Low gamma - lowgamma
+* High gamma - highgamma
+* Low ripple - lowripple
+* High ripple - highripple
+* Low multi-unit - lowmultiunit
 
 
 In order to run the console we will use the following command: 
