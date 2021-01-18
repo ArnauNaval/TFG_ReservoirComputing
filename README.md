@@ -18,6 +18,10 @@ Not only it is interesting to see if RC is capable of capturing the features rec
 
 * reservoir.py : This file runs the project, it builds the data and network using both the mentioned files above.
 
+Note: the data files need to be in the same directory as the python files mentioned above.
+
+The data files can be found [here](https://drive.google.com/drive/folders/16il-vwvtJtZZSCIInq0yJBzXu-YCg7o3?usp=sharing)
+
 
 
 ## How to run the code
