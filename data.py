@@ -28,11 +28,13 @@ class Data():
         self.num_trials_test = None
         self.train_labels = None
         self.test_labels = None
+
         
     def import_data(self,file):
         """
             Loading data from MatLab, rounding to 4 decimals
         """
+
         self.data = scipy.io.loadmat(file)
         self.data = self.data['out'] 
         self.data = self.data.round(decimals=4)
@@ -40,18 +42,22 @@ class Data():
         self.num_trials_train = int((self.data.shape[2]*self.training_percentage)/100)
         self.num_trials_test = self.data.shape[2]-self.num_trials_train
         print(f'Total of {self.data.shape}' )  
+
         
     def build_training_matrix(self):
         """
             
             Training matrix will have the shape [128,508*n_trials*states]
-            
+        
             order='F' means that data will be read/write with Fortran-like index order, due to data coming from MatLab
+
+            Builds the matrix for training the model in the 5state problem.
+
+            Uses the following order statewise: 1,2,3,4,5,1,2,3,4,5... 
             
         """
         
         training_amount = self.num_trials_train
-        #print(f'Amount of trials for training: {training_amount}')
         
         self.training_data = np.zeros([self.data.shape[0],self.data.shape[1]*training_amount*self.data.shape[3]])
         
@@ -62,46 +68,21 @@ class Data():
         self.training_data[:,size*2:size*3] = self.data[:,:,:training_amount,2].reshape(-1,size,order='F')
         self.training_data[:,size*3:size*4] = self.data[:,:,:training_amount,3].reshape(-1,size,order='F')
         self.training_data[:,size*4:] = self.data[:,:,:training_amount,4].reshape(-1,size,order='F')
-
-        #print(f'Training data shape {self.training_data.shape}')
-
-    def build_training_results(self):
-        """
-            
-            Results matrix will have the shape [5,508*n_trials*states]
-            
-            order='F' means that data will be read/write with Fortran-like index order, due to data coming from MatLab
-            
-        """
-        if self.training_data is None:
-            print("You first need to build your training matrix")
-            return 1
         
-        training_amount = self.num_trials_train
-                
-        size = self.data.shape[1]*training_amount
-
-        self.training_results = np.zeros((self.data.shape[-1],self.training_data.shape[1]), dtype=float)
-        
-        self.training_results[0,:size] = 0.9
-        self.training_results[1,size:size*2] = 0.9
-        self.training_results[2,size*2:size*3] = 0.9
-        self.training_results[3,size*3:size*4] = 0.9
-        self.training_results[4,size*4:] = 0.9
-        
-        #print(f'Training results shape {self.training_results.shape}')
-
         
     def build_test_matrix(self):
         """
             Training matrix will have the shape [128,508*y_trials*states]
             
             order='F' means that data will be read/write with Fortran-like index order, due to data coming from MatLab
+
+            Builds the matrix for testing the model in the 5state problem.
+
+            Uses the following order statewise: 1,2,3,4,5,1,2,3,4,5... 
             
         """
         
         test_amount = self.num_trials_test
-        #print(f'Amount of trials for testing: {test_amount}')
         
         self.test_data = np.zeros([self.data.shape[0],self.data.shape[1]*test_amount*self.data.shape[3]])
         
@@ -113,50 +94,14 @@ class Data():
         self.test_data[:,size*3:size*4] = self.data[:,:,:test_amount,3].reshape(-1,size,order='F')
         self.test_data[:,size*4:] = self.data[:,:,:test_amount,4].reshape(-1,size,order='F')
 
-        #print(f'Test data shape {self.test_data.shape}')
-
-    def build_test_results(self):
-        """
-            
-            Results matrix will have the shape [5,508*y_trials*states]
-            
-            order='F' means that data will be read/write with Fortran-like index order, due to data coming from MatLab
-            
-        """
-        if self.test_data is None:
-            print("You first need to build your test matrix")
-            return 1
-        
-        test_amount = self.num_trials_test
-                
-        size = self.data.shape[1]*test_amount
-
-        self.test_results = np.zeros((self.data.shape[-1],self.test_data.shape[1]), dtype=float)
-        
-        self.test_results[0,:size] = 0.9
-        self.test_results[1,size:size*2] = 0.9
-        self.test_results[2,size*2:size*3] = 0.9
-        self.test_results[3,size*3:size*4] = 0.9
-        self.test_results[4,size*4:] = 0.9
-        
-        #print(f'Testing results shape {self.test_results.shape}')
-
-        
-    def shuffle_data(self,data,results):
-        data_shuffle = np.vstack((data,results))
-        np.random.shuffle(data_shuffle.T)
-        
-        data = data_shuffle[:128,:]
-        
-        results = data_shuffle[128:,:]
-        
-        print(f'Training data shape after shuffle {data.shape}')
-        print(f'Training results shape after shuffle {results.shape}')
-        return data,results
     
     def filter_data(self,data,range_filter):
+
+        """
+        Filters the data in the specified bandwidth range
+        """
+
         low_freq, high_freq = self.spectral_bands[range_filter]
-        #print(f'Band-pass filter between {low_freq} - {high_freq} Hz')
         
         low_freq, high_freq = low_freq/self.fs, high_freq/self.fs
         
@@ -166,10 +111,14 @@ class Data():
         return data
 
     def accuracy_lin(self,prediction,truth):
+        """
+        When using the linear regressor in the 5state problem, we can't use the built in score() function as we consider that the output
+        of the model will be the highest value of all the output nodes.
+
+        Here we take the the highest value of the output nodes and check if it is the same compared to the truth values.
+        """
+
         acc = 0
-        prediction = prediction.T
-        #print(prediction.shape)
-        #print(truth.shape)
 
         for i in range(prediction.shape[0]):
             tmp = [prediction[i,0],prediction[i,1],prediction[i,2],prediction[i,3],prediction[i,4]]
@@ -185,7 +134,13 @@ class Data():
 
         return acc/prediction.shape[0]
 
+
     def build_train_labels_lin(self):
+        """
+        Building the train labels for linear regression
+        Uses the following order statewise: 1,2,3,4,5,1,2,3,4,5... 
+        """
+
         self.train_labels = np.zeros([self.num_trials_train*5,5]) # 5 == Number of states
         self.train_labels[:self.num_trials_train,0] = 0.9
         self.train_labels[self.num_trials_train:self.num_trials_train*2,1] = 0.9
@@ -193,7 +148,13 @@ class Data():
         self.train_labels[self.num_trials_train*3:self.num_trials_train*4,3] = 0.9
         self.train_labels[self.num_trials_train*4:,4] = 0.9
         
+
     def build_test_labels_lin(self):
+        """
+        Building the test labels for linear regression
+        Uses the following order statewise: 1,2,3,4,5,1,2,3,4,5... 
+        """
+
         self.test_labels = np.zeros([self.num_trials_test*5,5]) # 5 == Number of states
         self.test_labels[:self.num_trials_test,0] = 0.9
         self.test_labels[self.num_trials_test:self.num_trials_test*2,1] = 0.9
@@ -201,12 +162,13 @@ class Data():
         self.test_labels[self.num_trials_test*3:self.num_trials_test*4,3] = 0.9
         self.test_labels[self.num_trials_test*4:,4] = 0.9
     
-    
-    def process_data(self):
-        #(128, 508, 140, 5)  ---->  (128,140,5)
-        self.data = np.abs(self.data).mean(axis=1)
         
     def build_train_labels_log(self):
+        """
+        Building the train labels for logistic classifier
+        Uses the following order statewise: 1,2,3,4,5,1,2,3,4,5... 
+        """
+
         self.train_labels = np.zeros([self.num_trials_train*5,]) # 5 == Number of states
         self.train_labels[:self.num_trials_train] = 0
         self.train_labels[self.num_trials_train:self.num_trials_train*2] = 1
@@ -214,7 +176,13 @@ class Data():
         self.train_labels[self.num_trials_train*3:self.num_trials_train*4] = 3
         self.train_labels[self.num_trials_train*4:] = 4
         
+
     def build_test_labels_log(self):
+        """
+        Building the test labels for logistic classifier
+        Uses the following order statewise: 1,2,3,4,5,1,2,3,4,5... 
+        """
+
         self.test_labels = np.zeros([self.num_trials_test*5,]) # 5 == Number of states
         self.test_labels[:self.num_trials_test] = 0
         self.test_labels[self.num_trials_test:self.num_trials_test*2] = 1
@@ -222,7 +190,25 @@ class Data():
         self.test_labels[self.num_trials_test*3:self.num_trials_test*4] = 3
         self.test_labels[self.num_trials_test*4:] = 4
 
+
     def leftvsright_mixed(self):
+        """
+        Building the data for the left vs right problem, both train and test.
+
+        The raw data comes in the following order statewise:
+            
+        1,2,3,4,5,6,7,8,9,10  where states 1-5 correspond to the left arm and 6-10 to the right arm,
+
+        this order is not optimal as it can end up having stronger connections for the right arm.
+
+        In order to solve this problem we will use the following order, for both training and testing:
+
+        1,6,2,7,3,8,4,9,5,10 this order pairs up the same state for the both left and right arm, and
+
+        it has shown better results.
+
+        """
+
         training_amount = self.num_trials_train
         
         self.training_data = self.data[:,:,:training_amount,0]
