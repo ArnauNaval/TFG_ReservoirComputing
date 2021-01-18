@@ -4,10 +4,8 @@ from sklearn.linear_model import LinearRegression,LogisticRegression
 import sklearn.neighbors as sklnn
 
 class Network():
-    def __init__(self, T = None, n_min = None, K = None, N = None, L = None, W_in = None, W = None, W_back = None, W_out = None,
-                 non_null_matrices = None): 
+    def __init__(self, T = None, n_min = None, K = None, N = None, L = None, W_in = None, W = None, W_back = None, W_out = None): 
         
-        #NEED TO BE DEFINED BY THE USER:
         self.T = T #number of training time steps (integer)
         self.n_min = n_min #time steps dismissed (integer)
         
@@ -18,9 +16,7 @@ class Network():
         self.W_in = W_in #input connections (matrix of size self.N x self.K)
         self.W = W #adjacency matrix (matrix of size self.N x self.N)
         
-        self.non_null_matrices = non_null_matrices #list giving the matrices used when training: "W_in" and/or "W_back"
   
-        #DO NOT NEED TO BE DEFINED BY THE USER:
         self.initial_state = None #initial state of the reservoir (state forgetting property)        
         self.trajectories = None #dynamics of the reservoir (matrix of size self.T x self.N) 
         self.regressor = None #regressor
@@ -29,8 +25,8 @@ class Network():
         self.u = None #input (matrix of size self.K x self.T) 
         self.u_test = None #input durint training (matrix of size self.K x t_dismiss+t_autonom) 
         
-        self.mean_train_matrix = None
-        self.mean_test_matrix = None
+        self.mean_train_matrix = None #matrix where we will perform the mean of each state in training
+        self.mean_test_matrix = None #matrix where we will perform the mean of each state in testing
         
     def setup_network(self,d,k,inpu,reser,states):
 
@@ -71,9 +67,11 @@ class Network():
                     self.W[i,j] = 0
 
 
+		########################
+        # Making sure the largest eigenvalue in module is < 1
+        ########################
         alpha = 0.22/max(abs(scipy.linalg.eigvals(self.W)))
         self.W = alpha*self.W
-        _,s,_ = scipy.linalg.svd(self.W)
 
     
     def compute_nodes_trajectories(self,num_columns, num_trials, test=False, t_autonom=None): 
@@ -94,58 +92,62 @@ class Network():
             
 
         if test == False:
-            
             columna = -1
-            state = -1
+            trial = -1
             
             self.trajectories = np.zeros((self.T,self.N))
             
             for n in np.arange(self.T):
-                x = np.tanh(np.dot(self.W_in,self.u[:,n])+np.dot(self.W,x_prev))
+                x = np.tanh(np.dot(self.W_in,self.u[:,n])+np.dot(self.W,x_prev)) #state update equation
                 self.trajectories[n,:] = x
                 x_prev = x    
                 
-                if n%num_columns == 0:
-                    self.mean_train_matrix[:,columna,state] = self.mean_train_matrix[:,columna,state]/num_columns
+                if n%num_columns == 0: #mean for each state in a trial
+                    self.mean_train_matrix[:,columna,trial] = self.mean_train_matrix[:,columna,trial]/num_columns
                     columna += 1
-                if n %(num_columns*num_trials) == 0:
-                    state += 1
+
+                if n %(num_columns*num_trials) == 0: #after each trial, we move on to the next one
+                    trial += 1
                     columna = 0
                     
-                self.mean_train_matrix[:,columna,state] += x
+                self.mean_train_matrix[:,columna,trial] += x
                     
             return self
 
         elif test == True: 
-            
             columna = -1
-            state = -1
+            trial = -1
             
             for n in np.arange(t_autonom):
-                x = np.tanh(np.dot(self.W_in, self.u_test[:,n])+np.dot(self.W,x_prev))
+                x = np.tanh(np.dot(self.W_in, self.u_test[:,n])+np.dot(self.W,x_prev)) #state update equation
                 x_prev = x
                 
-                if n%num_columns == 0:
-                    self.mean_test_matrix[:,columna,state] = self.mean_test_matrix[:,columna,state]/num_columns
+                if n%num_columns == 0:#mean for each state in a trial
+                    self.mean_test_matrix[:,columna,trial] = self.mean_test_matrix[:,columna,trial]/num_columns
                     columna += 1
-                if n%(num_columns*num_trials) == 0:
-                    state += 1
-                    columna = 0             
-                self.mean_test_matrix[:,columna,state] += x
+
+                if n%(num_columns*num_trials) == 0:#after each trial, we move on to the next one
+                    trial += 1
+                    columna = 0   
+
+                self.mean_test_matrix[:,columna,trial] += x
 
             return self
             
-                
-    def train_network(self,num_states,classifier,num_columns, num_trials, labels, num_nodes):
-        
-        #Define the initial state (which is not relevant due to state forgetting property)
+             
+    def train_network(self, num_states, classifier ,num_columns, num_trials, labels, num_nodes):
+        """
+			Method responsible for processing the training data trough the network and fitting the result to the desired classifier
+		"""
+
+		#Define the initial state (which is not relevant due to state forgetting property)
         self.initial_state = np.ones(self.N)
-        
-        #Compute trajectories
+
+		#Data trough network
         self.compute_nodes_trajectories(num_columns, num_trials)
-        
+
         self.mean_train_matrix = self.mean_train_matrix.reshape((num_nodes,num_trials*num_states),order='F')
-        
+
         if classifier == 'lin':
             regressor = LinearRegression()
             regressor.fit(self.mean_train_matrix.T, labels)
@@ -158,26 +160,20 @@ class Network():
             regressor = sklnn.KNeighborsClassifier(n_neighbors=1, algorithm='brute', metric='correlation')
             regressor.fit(self.mean_train_matrix.T, labels.T)
 
-        self.regressor = regressor   
-        
-        return self   
-    
+        self.regressor = regressor
+
+        return self  
     
     def test_network(self, data, num_columns, num_trials, num_nodes, states, t_autonom):
         """
-        Args:
-            -data
-            -t_autonom, time we let the network freely run
-        
-        Returns:
-            -Prediction
+    		Method responsible for processing the testing data trough the network
         """ 
         
-        #Define u_test
         self.u_test = data                        
                       
         self.compute_nodes_trajectories(num_columns, num_trials, test=True, t_autonom=t_autonom)
         
         self.mean_test_matrix = self.mean_test_matrix.reshape((num_nodes,num_trials*states),order='F')
+
         return self
             
